@@ -1,0 +1,882 @@
+// Main.java
+
+package main;
+
+import java.sql.Connection;
+//import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+import javax.swing.JFrame;
+import javax.swing.ImageIcon;
+
+
+public class Main {
+
+    public static void main(String[] args) {
+        try {
+            Connection connection = DatabaseConnection.connectToDatabase();
+
+            // Ostatak vašeg trenutnog koda koji je izvan konteksta prozora
+
+            // Stvaranje instance GlavniMeni
+            GlavniMeni glavniMeni = new GlavniMeni();
+            
+            ImageIcon icon = new ImageIcon("C:\\Users\\HomePC\\Documents\\NetBeansProjects\\Main\\denver-nuggets-32x32.png");
+            
+            // Stvaranje JFrame prozora i postavljanje svojstava
+            JFrame frame = new JFrame("Denver Nuggets Stats");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setIconImage(icon.getImage());
+            
+            // Postavljanje GlavniMeni kao sadržaja prozora
+            frame.setContentPane(glavniMeni);
+            
+            // Promjena veličine prozora prema sadržaju
+            frame.pack();
+            
+            frame.setLocationRelativeTo(null);
+            
+            // Postavljanje prozora na vidljivo stanje
+            frame.setVisible(true);
+
+            // Zatvaranje veze s bazom podataka
+            connection.close();
+        } catch (SQLException e) {
+            System.err.println("Greška prilikom povezivanja s bazom podataka: " + e.getMessage());
+        }
+    }
+}
+
+//Igrac.java
+
+package main;
+
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Igrac {
+    private String ime;
+    private String tim;
+    private String pozicija;
+    private int brojDresa;
+    private IgracStats stats;
+
+    // Konstruktor
+    public Igrac(String ime, String tim, String pozicija, int brojDresa) {
+        this.ime = ime;
+        this.tim = tim;
+        this.pozicija = pozicija;
+        this.brojDresa = brojDresa;
+    }
+
+    // Getteri i setteri
+    public String getIme() {
+        return ime;
+    }
+
+    public void setIme(String ime) {
+        this.ime = ime;
+    }
+
+    public String getTim() {
+        return tim;
+    }
+
+    public void setTim(String tim) {
+        this.tim = tim;
+    }
+
+    public String getPozicija() {
+        return pozicija;
+    }
+
+    public void setPozicija(String pozicija) {
+        this.pozicija = pozicija;
+    }
+
+    public int getBrojDresa() {
+        return brojDresa;
+    }
+
+    public void setBrojDresa(int brojDresa) {
+        this.brojDresa = brojDresa;
+    }
+
+    public IgracStats getStats() {
+        return stats;
+    }
+
+    public void setStats(IgracStats stats) {
+        this.stats = stats;
+    }
+
+    public static List<Igrac> getIgraciFromDatabase(Connection connection) {
+        List<Igrac> igraci = new ArrayList<>();
+
+        //Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            // Spajanje na bazu podataka
+            connection = DatabaseConnection.connectToDatabase();
+
+            // SQL upit za dohvat svih igrača
+            String query = "SELECT * FROM igrac";
+
+            // Priprema SQL izjave
+            statement = connection.prepareStatement(query);
+
+            // Izvršavanje upita
+            resultSet = statement.executeQuery();
+
+            // Iteriranje kroz rezultate upita
+            while (resultSet.next()) {
+                // Dohvaćanje podataka o igraču iz rezultata upita
+                String ime = resultSet.getString("ime");
+                String tim = resultSet.getString("tim");
+                String pozicija = resultSet.getString("pozicija");
+                int brojDresa = resultSet.getInt("brojDresa");
+
+                // Kreiranje objekta igrača i dodavanje u listu
+                Igrac igrac = new Igrac(ime, tim, pozicija, brojDresa);
+                igraci.add(igrac);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            // Zatvaranje resursa
+            if (resultSet != null) {
+                try {
+                    resultSet.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                  e.printStackTrace();
+                }
+            }
+        }
+
+                // Vraćanje liste igrača
+        return igraci;
+    }
+    
+    public static void saveIgrac(Connection connection, Igrac igrac) throws SQLException {
+        PreparedStatement statement = null;
+
+        try {
+            // SQL upit za spremanje igrača
+            String query = "INSERT INTO igrac (ime, tim, pozicija, brojDresa) VALUES (?, ?, ?, ?)";
+
+            // Priprema SQL izjave
+            statement = connection.prepareStatement(query);
+
+            // Postavljanje vrijednosti parametara iz objekta igrača
+            statement.setString(1, igrac.getIme());
+            statement.setString(2, igrac.getTim());
+            statement.setString(3, igrac.getPozicija());
+            statement.setInt(4, igrac.getBrojDresa());
+
+            // Izvršavanje upita
+            statement.executeUpdate();
+        } finally {
+            // Zatvaranje resursa
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+// IgracStats.java
+package main;
+
+public class IgracStats {
+    private int brojKoseva;
+    private int brojSkokova;
+    private int brojAsistencija;
+    private double brojMinuta;
+    private int brojKosevaIzIgre;
+    private int sutIzIgre;
+    private int brojKoseva3p;
+    private int brojSuteva3p;
+    private int brojKosevaSB;
+    private int brojSlobodnihBacanja;
+
+    // Konstruktor
+    public IgracStats(int brojKoseva, int brojSkokova, int brojAsistencija, double brojMinuta, int brojKosevaIzIgre, int brojKoseva3p, int brojSuteva3p, int brojKosevaSB, int brojSlobodnihBacanja, int sutIzIgre) {
+        this.brojKoseva = brojKoseva;
+        this.brojSkokova = brojSkokova;
+        this.brojAsistencija = brojAsistencija;
+        this.brojMinuta = brojMinuta;
+        this.brojKosevaIzIgre = brojKosevaIzIgre;
+        this.sutIzIgre = sutIzIgre;
+        this.brojKoseva3p = brojKoseva3p;
+        this.brojSuteva3p = brojSuteva3p;
+        this.brojKosevaSB = brojKosevaSB;
+        this.brojSlobodnihBacanja = brojSlobodnihBacanja;
+    }
+
+    // Getteri i setteri
+    public int getBrojKoseva() {
+        return brojKoseva;
+    }
+
+    public void setBrojKoseva(int brojKoseva) {
+        this.brojKoseva = brojKoseva;
+    }
+
+    public int getBrojSkokova() {
+        return brojSkokova;
+    }
+
+    public void setBrojSkokova(int brojSkokova) {
+        this.brojSkokova = brojSkokova;
+    }
+
+    public int getBrojAsistencija() {
+        return brojAsistencija;
+    }
+
+    public void setBrojAsistencija(int brojAsistencija) {
+        this.brojAsistencija = brojAsistencija;
+    }
+
+    public double getBrojMinuta() {
+        return brojMinuta;
+    }
+
+    public void setBrojMinuta(double brojMinuta) {
+        this.brojMinuta = brojMinuta;
+    }
+
+    public int getBrojKosevaIzIgre() {
+        return brojKosevaIzIgre;
+    }
+
+    public void setBrojKosevaIzIgre(int brojKosevaIzIgre) {
+        this.brojKosevaIzIgre = brojKosevaIzIgre;
+    }
+
+    public int getSutIzIgre() {
+        return sutIzIgre;
+    }
+
+    public void setSutIzIgre(int sutIzIgre) {
+        this.sutIzIgre = sutIzIgre;}
+        
+    public int getBrojKoseva3p() {
+        return brojKoseva3p;
+    }
+
+    public void setBrojKoseva3p(int brojKoseva3p) {
+        this.brojKoseva3p = brojKoseva3p;
+    }
+
+    public int getBrojSuteva3p() {
+        return brojSuteva3p;
+    }
+
+    public void setBrojSuteva3p(int brojSuteva3p) {
+        this.brojSuteva3p = brojSuteva3p;
+    }
+
+    public int getBrojKosevaSB() {
+        return brojKosevaSB;
+    }
+
+    public void setBrojKosevaSB(int brojKosevaSB) {
+        this.brojKosevaSB = brojKosevaSB;
+    }
+
+    public int getBrojSlobodnihBacanja() {
+        return brojSlobodnihBacanja;
+    }
+
+    public void setBrojSlobodnihBacanja(int brojSlobodnihBacanja) {
+        this.brojSlobodnihBacanja = brojSlobodnihBacanja;
+    }
+}
+
+// Utakmice.java
+
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package main;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.sql.Statement;
+/**
+ *
+ * @author HomePC
+ */
+public class Utakmice {
+    private int id;
+    private String vrsta;
+    private String datum;
+    private String tim1;
+    private String tim2;
+    private int kosevitim1;
+    private int kosevitim2;
+    // Dodajte ostale atribute kao što su rezultat, lokacija, itd.
+
+    // Konstruktor
+    public Utakmice(int id, String vrsta, String datum, String tim1, String tim2, int kosevitim1, int kosevitim2) {
+        this.id = id;
+        this.vrsta = vrsta;
+        this.datum = datum;
+        this.tim1 = tim1;
+        this.tim2 = tim2;
+        this.kosevitim1 = kosevitim1;
+        this.kosevitim2 = kosevitim2;
+    }
+    
+
+    // Getteri i setteri za atribute
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getVrsta() {
+        return vrsta;
+    }
+
+    public void setVrsta(String vrsta) {
+        this.vrsta = vrsta;
+    }
+
+    public String getDatum() {
+        return datum;
+    }
+
+    public void setDatum(String datum) {
+        this.datum = datum;
+    }
+
+    public String getTim1() {
+        return tim1;
+    }
+
+    public void setTim1(String tim1) {
+        this.tim1 = tim1;
+    }
+
+    public String getTim2() {
+        return tim2;
+    }
+
+    public void setTim2(String tim2) {
+        this.tim2 = tim2;
+    }
+    public int getkoseviTim1() {
+        return kosevitim1;
+    }
+
+    public void setkoseviTim1(int kosevitim1) {
+        this.kosevitim1 = kosevitim1;
+    }
+    
+    public int getkoseviTim2() {
+        return kosevitim2;
+    }
+
+    public void setkoseviTim2(int kosevitim2) {
+        this.kosevitim2 = kosevitim2;
+    }
+    
+     public static List<Utakmice> getAllUtakmiceFromDatabase(Connection connection) {
+    List<Utakmice> utakmiceList = new ArrayList<>();
+
+    try {
+        String query = "SELECT * FROM utakmice";
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(query);
+
+        while (resultSet.next()) {
+            int id = resultSet.getInt("id");
+            String vrsta = resultSet.getString("vrsta");
+            String datum = resultSet.getString("datum");
+            String tim1 = resultSet.getString("tim1");
+            String tim2 = resultSet.getString("tim2");
+            int koseviTim1 = resultSet.getInt("koseviTim1");
+            int koseviTim2 = resultSet.getInt("koseviTim2");
+
+            Utakmice utakmica = new Utakmice(id, vrsta, datum, tim1, tim2, koseviTim1, koseviTim2);
+            utakmiceList.add(utakmica);
+        }
+
+        // Zatvaranje resursa
+        resultSet.close();
+        statement.close();
+    } catch (SQLException e) {
+        System.err.println("Greška prilikom dohvata utakmica iz baze podataka: " + e.getMessage());
+    }
+
+    return utakmiceList;
+}
+}
+// DatabaseConnection.java
+package main;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+public class DatabaseConnection {
+
+    private static final String DATABASE_URL = "jdbc:sqlite:C:/Users/HomePC/Documents/NetBeansProjects/Main/db/tutorial.db";
+
+    public static Connection connectToDatabase() throws SQLException {
+        Connection connection = null;
+        try {
+            // Uspostavljanje veze s bazom podataka
+            connection = DriverManager.getConnection(DATABASE_URL);
+            System.out.println("Uspješno povezano s bazom podataka.");
+        } catch (SQLException e) {
+            System.err.println("Greška prilikom povezivanja s bazom podataka: " + e.getMessage());
+        }
+        return connection;
+    }
+    
+
+    public static void saveGame(Connection connection, Utakmice utakmica, IgracStats stats) {
+        try {
+            String insertQuery = "INSERT INTO utakmice (vrsta, datum, tim1, tim2, koseviTim1, koseviTim2) VALUES (?, ?, ?, ?, ?, ?)";
+            PreparedStatement insertStatement = connection.prepareStatement(insertQuery);
+            insertStatement.setString(1, utakmica.getVrsta());
+            insertStatement.setString(2, utakmica.getDatum());
+            insertStatement.setString(3, utakmica.getTim1());
+            insertStatement.setString(4, utakmica.getTim2());
+            insertStatement.setInt(5, utakmica.getkoseviTim1());
+            insertStatement.setInt(6, utakmica.getkoseviTim2());
+
+            int rowsInserted = insertStatement.executeUpdate();
+            if (rowsInserted > 0) {
+                System.out.println("Utakmica uspješno spremljena u bazu podataka.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Greška prilikom spremanja utakmice: " + e.getMessage());
+        }
+    }
+
+    public static void savePlayerStats(Connection connection, IgracStats stats, String datum, String imeIgraca) {
+    try {
+        // Insertanje statistika za igrača u tablicu "statistika"
+        String insertStatsQuery = "INSERT INTO statistika (brojKoseva, brojSkokova, brojAsistencija, brojMinuta, brojKosevaIzIgre, brojKoseva3p, brojSuteva3p, brojKosevaSB, brojSlobodnihBacanja, sutIzIgre,imeIgraca, datum) VALUES (?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        PreparedStatement insertStatsStatement = connection.prepareStatement(insertStatsQuery);
+        
+        insertStatsStatement.setInt(1, stats.getBrojKoseva());
+        insertStatsStatement.setInt(2, stats.getBrojSkokova());
+        insertStatsStatement.setInt(3, stats.getBrojAsistencija());
+        insertStatsStatement.setDouble(4, stats.getBrojMinuta());
+        insertStatsStatement.setInt(5, stats.getBrojKosevaIzIgre());
+        insertStatsStatement.setInt(6, stats.getBrojKoseva3p());
+        insertStatsStatement.setInt(7, stats.getBrojSuteva3p());
+        insertStatsStatement.setInt(8, stats.getBrojKosevaSB());
+        insertStatsStatement.setInt(9, stats.getBrojSlobodnihBacanja());
+        insertStatsStatement.setInt(10, stats.getSutIzIgre());
+        insertStatsStatement.setString(11, imeIgraca);
+        insertStatsStatement.setString(12, datum);
+
+
+        int rowsInserted = insertStatsStatement.executeUpdate();
+        if (rowsInserted > 0) {
+            System.out.println("Statistike igrača uspješno spremljene u bazu podataka.");
+        }
+    } catch (SQLException e) {
+        System.err.println("Greška prilikom spremanja podataka: " + e.getMessage());
+    }
+}
+public List<Utakmice> getAllUtakmiceFromDatabase(Connection connection) {
+    List<Utakmice> utakmiceList = new ArrayList<>();
+
+    try {
+        String query = "SELECT * FROM Utakmice";
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(query);
+
+        while (resultSet.next()) {
+            int id = resultSet.getInt("id");
+            String vrsta = resultSet.getString("vrsta");
+            String datum = resultSet.getString("datum");
+            String tim1 = resultSet.getString("tim1");
+            String tim2 = resultSet.getString("tim2");
+            int koseviTim1 = resultSet.getInt("koseviTim1");
+            int koseviTim2 = resultSet.getInt("koseviTim2");
+
+            Utakmice utakmica = new Utakmice(id, vrsta, datum, tim1, tim2, koseviTim1, koseviTim2);
+            utakmiceList.add(utakmica);
+        }
+
+        // Zatvaranje resursa
+
+    } catch (SQLException e) {
+        System.err.println("Greška prilikom dohvata utakmica iz baze podataka: " + e.getMessage());
+    }
+
+    return utakmiceList;
+}
+
+
+}
+
+
+GlavniMeni.java
+
+package main;
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.List;
+import main.Igrac;
+import main.IgracStats;
+import main.Utakmice;
+import javax.swing.JOptionPane;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.List;
+import main.Utakmice;
+import java.util.ArrayList;
+
+
+
+
+
+public class GlavniMeni extends javax.swing.JPanel {
+
+    /**
+     * Creates new form GlavniMeni
+     */
+    public GlavniMeni() {
+        initComponents();
+    }
+
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
+     */
+    
+    @SuppressWarnings("unchecked")
+ 
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
+    private void initComponents() {
+
+        jButton1 = new javax.swing.JButton();
+        jButton2 = new javax.swing.JButton();
+        jButton4 = new javax.swing.JButton();
+
+        setBackground(new java.awt.Color(13, 34, 64));
+
+        jButton1.setBackground(new java.awt.Color(255, 198, 39));
+        jButton1.setFont(new java.awt.Font("Agency FB", 1, 13)); // NOI18N
+        jButton1.setForeground(new java.awt.Color(139, 35, 50));
+        jButton1.setText("Dodaj utakmicu");
+        jButton1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(255, 255, 255), 2));
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
+        jButton2.setBackground(new java.awt.Color(255, 198, 39));
+        jButton2.setFont(new java.awt.Font("Agency FB", 1, 13)); // NOI18N
+        jButton2.setForeground(new java.awt.Color(139, 35, 50));
+        jButton2.setText("Igraci");
+        jButton2.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(255, 255, 255), 2));
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
+
+        jButton4.setBackground(new java.awt.Color(255, 198, 39));
+        jButton4.setFont(new java.awt.Font("Agency FB", 1, 13)); // NOI18N
+        jButton4.setForeground(new java.awt.Color(139, 35, 50));
+        jButton4.setText("Dodaj statistiku");
+        jButton4.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(255, 255, 255), 2));
+        jButton4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton4ActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        this.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(123, 123, 123)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 153, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(124, Short.MAX_VALUE))
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(85, Short.MAX_VALUE)
+                .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 43, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(72, 72, 72))
+        );
+    }// </editor-fold>                        
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {                                         
+    String vrsta = JOptionPane.showInputDialog(this, "Unesite vrstu utakmice:");
+    String datum = JOptionPane.showInputDialog(this, "Unesite datum utakmice (DD.MM.GGGG):");
+    String tim1 = JOptionPane.showInputDialog(this, "Unesite naziv prvog tima:");
+    String tim2 = JOptionPane.showInputDialog(this, "Unesite naziv drugog tima:");
+    int koseviTim1 = Integer.parseInt(JOptionPane.showInputDialog(this, "Unesite broj koševa za prvi tim:"));
+    int koseviTim2 = Integer.parseInt(JOptionPane.showInputDialog(this, "Unesite broj koševa za drugi tim:"));
+
+    Utakmice utakmica = new Utakmice(0, vrsta, datum, tim1, tim2, koseviTim1, koseviTim2);
+
+    try {
+        
+        Connection connection = DatabaseConnection.connectToDatabase();
+        
+         //DatabaseConnection.saveGame(connection, utakmica, stats);
+        //connection.close();
+
+         List<Igrac> igraci = Igrac.getIgraciFromDatabase(connection);
+        String[] options = new String[igraci.size()];
+        for (int i = 0; i < igraci.size(); i++) {
+            options[i] = igraci.get(i).getIme();
+        }
+
+        String selectedPlayer = (String) JOptionPane.showInputDialog(this, "Odaberite igrača:", "Odabir igrača", JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
+        if (selectedPlayer != null) {
+            String imeIgraca = selectedPlayer;
+            int brojKoseva = Integer.parseInt(JOptionPane.showInputDialog(this, "Unesite broj koševa:"));
+            int brojSkokova = Integer.parseInt(JOptionPane.showInputDialog(this, "Unesite broj skokova:"));
+            int brojAsistencija = Integer.parseInt(JOptionPane.showInputDialog(this, "Unesite broj asistencija:"));
+            double brojMinuta = Double.parseDouble(JOptionPane.showInputDialog(this, "Unesite broj minuta:"));
+            int brojKosevaIzIgre = Integer.parseInt(JOptionPane.showInputDialog(this, "Unesite broj koševa iz igre:"));
+            int sutIzIgre = Integer.parseInt(JOptionPane.showInputDialog(this, "Unesite broj šutova iz igre:"));
+            int brojKoseva3p = Integer.parseInt(JOptionPane.showInputDialog(this, "Unesite broj koševa za 3 poena:"));
+            int brojSuteva3p = Integer.parseInt(JOptionPane.showInputDialog(this, "Unesite broj šuteva za 3 poena:"));
+            int brojKosevaSB = Integer.parseInt(JOptionPane.showInputDialog(this, "Unesite broj koševa slobodnih bacanja:"));
+            int brojSlobodnihBacanja = Integer.parseInt(JOptionPane.showInputDialog(this, "Unesite broj slobodnih bacanja:"));
+             IgracStats stats = new IgracStats(brojKoseva, brojSkokova, brojAsistencija, brojMinuta, brojKosevaIzIgre, sutIzIgre, brojKoseva3p, brojSuteva3p, brojKosevaSB, brojSlobodnihBacanja);
+               DatabaseConnection.saveGame(connection, utakmica, stats);
+               
+               
+             DatabaseConnection.savePlayerStats(connection, stats, datum, imeIgraca);
+
+                
+        connection.close();
+                
+            JOptionPane.showMessageDialog(this, "Statistika igrača uspješno spremljena.");
+        } else {
+            JOptionPane.showMessageDialog(this, "Niste odabrali igrača.");
+        }
+        
+    } catch (SQLException e) {
+        System.err.println("Greška prilikom spremanja utakmice: " + e.getMessage());
+        JOptionPane.showMessageDialog(this, "Došlo je do greške prilikom spremanja utakmice.");
+    }
+    
+    }                                        
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {                                         
+        // Ovdje otvaramo dijalog za unos atributa igrača
+    try {
+        String ime = JOptionPane.showInputDialog(this, "Unesite ime igrača:");
+        String tim = JOptionPane.showInputDialog(this, "Unesite tim igrača:");
+        String pozicija = JOptionPane.showInputDialog(this, "Unesite poziciju igrača:");
+        int brojDresa = Integer.parseInt(JOptionPane.showInputDialog(this, "Unesite broj dresa igrača:"));
+
+        Igrac noviIgrac = new Igrac(ime, tim, pozicija, brojDresa);
+        Igrac.saveIgrac(DatabaseConnection.connectToDatabase(), noviIgrac);
+        
+        // listaIgraca.add(noviIgrac);
+
+        // Ažurirajte grafičko sučelje ili prikažite poruku o uspješnom dodavanju igrača
+    } catch (SQLException e) {
+        System.err.println("Greška prilikom spremanja igrača: " + e.getMessage());
+        JOptionPane.showMessageDialog(this, "Došlo je do greške prilikom spremanja igrača.");
+    }
+    }                                        
+
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {                                         
+         try {
+        // Uspostavljanje veze s bazom podataka
+        Connection connection = DatabaseConnection.connectToDatabase();
+        System.out.println("Uspješno povezano s bazom podataka.");
+
+        // Dohvaćanje svih utakmica iz baze podataka
+        
+        List<Utakmice> utakmice = Utakmice.getAllUtakmiceFromDatabase(connection);
+
+        // Kreiranje liste opcija za JComboBox
+        List<String> options = new ArrayList<>();
+        for (Utakmice utakmica : utakmice) {
+            String option = utakmica.getVrsta() + " - " + utakmica.getDatum();
+            options.add(option);
+        }
+
+        // Stvaranje JComboBox i prikazivanje dijaloga za odabir utakmice
+        JComboBox<String> comboBox = new JComboBox<>(options.toArray(new String[0]));
+        comboBox.setEditable(false);
+        String message = "Odaberite utakmicu:";
+        Object[] params = {message, comboBox};
+        int choice = JOptionPane.showConfirmDialog(this, params, "Odabir utakmice", JOptionPane.OK_CANCEL_OPTION);
+
+        if (choice == JOptionPane.OK_OPTION) {
+            // Odabir utakmice
+            String selectedOption = (String) comboBox.getSelectedItem();
+            int selectedUtakmicaIndex = comboBox.getSelectedIndex();
+            Utakmice selectedUtakmica = utakmice.get(selectedUtakmicaIndex);
+
+            // Dohvaćanje svih igrača iz baze podataka
+            List<Igrac> igraci = Igrac.getIgraciFromDatabase(connection);
+
+            // Kreiranje liste opcija za drugi JComboBox (odabir igrača)
+            List<String> playerOptions = new ArrayList<>();
+            for (Igrac igrac : igraci) {
+                playerOptions.add(igrac.getIme());
+            }
+
+            // Stvaranje drugog JComboBox i prikazivanje dijaloga za odabir igrača
+            JComboBox<String> playerComboBox = new JComboBox<>(playerOptions.toArray(new String[0]));
+            playerComboBox.setEditable(false);
+            String playerMessage = "Odaberite igrača:";
+            Object[] playerParams = {playerMessage, playerComboBox};
+            int playerChoice = JOptionPane.showConfirmDialog(this, playerParams, "Odabir igrača", JOptionPane.OK_CANCEL_OPTION);
+
+            if (playerChoice == JOptionPane.OK_OPTION) {
+                // Odabir igrača
+                String selectedPlayer = (String) playerComboBox.getSelectedItem();
+
+                // Prikaz odabrane utakmice i igrača
+                JOptionPane.showMessageDialog(this, "Odabrana utakmica: " + selectedOption + "\nOdabrani igrač: " + selectedPlayer);
+
+                // Unos statistike za odabranog igrača
+                IgracStats stats = unosStatistike();
+                if (stats != null) {
+                    // Spremanje statistike igrača u bazu podataka
+                    DatabaseConnection.savePlayerStats(connection, stats, selectedUtakmica.getDatum(), selectedPlayer);
+                }
+            }
+        }
+
+        // Zatvaranje veze s bazom podataka
+        connection.close();
+        System.out.println("Veza s bazom podataka zatvorena.");
+    }
+     catch (SQLException e) {
+        System.err.println("Greška prilikom dohvatanja podataka iz baze: " + e.getMessage());
+    }
+}
+
+private IgracStats unosStatistike() {
+    // Stvaranje dijaloga za unos statistike
+    JTextField brojKosevaField = new JTextField();
+    JTextField brojSkokovaField = new JTextField();
+    JTextField brojAsistencijaField = new JTextField();
+    JTextField brojMinutaField = new JTextField();
+    JTextField brojKosevaIzIgreField = new JTextField();
+    JTextField brojKoseva3pField = new JTextField();
+    JTextField brojSuteva3pField = new JTextField();
+    JTextField brojKosevaSBField = new JTextField();
+    JTextField brojSlobodnihBacanjaField = new JTextField();
+    JTextField sutIzIgreField = new JTextField();
+
+    Object[] fields = {
+        "Broj koševa:", brojKosevaField,
+        "Broj skokova:", brojSkokovaField,
+        "Broj asistencija:", brojAsistencijaField,
+        "Broj minuta:", brojMinutaField,
+        "Broj koševa iz igre:", brojKosevaIzIgreField,
+        "Broj koševa za 3 poena:", brojKoseva3pField,
+        "Broj šuteva za 3 poena:", brojSuteva3pField,
+        "Broj koševa slobodnim bacanjima:", brojKosevaSBField,
+        "Broj slobodnih bacanja:", brojSlobodnihBacanjaField,
+        "Šut iz igre (%):", sutIzIgreField
+    };
+
+    int option = JOptionPane.showConfirmDialog(null, fields, "Unos statistike", JOptionPane.OK_CANCEL_OPTION);
+
+    if (option == JOptionPane.OK_OPTION) {
+        try {
+            // Čitanje unesenih vrijednosti
+            int brojKoseva = Integer.parseInt(brojKosevaField.getText());
+            int brojSkokova = Integer.parseInt(brojSkokovaField.getText());
+            int brojAsistencija = Integer.parseInt(brojAsistencijaField.getText());
+            double brojMinuta = Double.parseDouble(brojMinutaField.getText());
+            int brojKosevaIzIgre = Integer.parseInt(brojKosevaIzIgreField.getText());
+            int brojKoseva3p = Integer.parseInt(brojKoseva3pField.getText());
+            int brojSuteva3p = Integer.parseInt(brojSuteva3pField.getText());
+            int brojKosevaSB = Integer.parseInt(brojKosevaSBField.getText());
+            int brojSlobodnihBacanja = Integer.parseInt(brojSlobodnihBacanjaField.getText());
+            int sutIzIgre = Integer.parseInt(sutIzIgreField.getText());
+            // Kreiranje objekta IgracStats s unesenim vrijednostima
+            IgracStats stats = new IgracStats(brojKoseva, brojSkokova, brojAsistencija, brojMinuta, brojKosevaIzIgre, brojKoseva3p, brojSuteva3p, brojKosevaSB, brojSlobodnihBacanja, sutIzIgre);
+            return stats;
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "Pogrešan unos. Molim unesite brojčanu vrijednost.", "Greška", JOptionPane.ERROR_MESSAGE);
+        }
+
+        // Vraćanje null ukoliko je došlo do greške
+        
+    }
+    return null;
+    }                                        
+  
+
+    // Variables declaration - do not modify                     
+    private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
+    private javax.swing.JButton jButton4;
+    // End of variables declaration                   
+}
+
+
+/*evo citavog koda za moju aplikaciju, zelim da uradim pretrazivanje kao 4. button pored "Igrac" "Dodaj utakmicu" "Dodaj statistiku". Mozemo li uraditi pretrazivanje ali pomocu JTable?*/
